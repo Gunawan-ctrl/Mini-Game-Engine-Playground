@@ -1,7 +1,11 @@
 <template>
   <div
-    class="player absolute cursor-pointer"
-    :class="{ 'shooting-effect': gameStore.player.isShooting }"
+    class="player absolute"
+    :class="{
+      'shooting-effect': gameStore.player.isShooting,
+      'cursor-grab': !gameStore.isDragging,
+      'cursor-grabbing': gameStore.isDragging
+    }"
     :style="playerStyle"
     @click.stop="handleClick"
   >
@@ -94,7 +98,7 @@ const playerStyle = computed(() => {
     width: `${size}px`,
     height: `${size}px`,
     transform: `rotate(${gameStore.player.rotation}deg)`,
-    transition: 'all 0.1s linear'
+    transition: gameStore.isDragging ? 'none' : 'all 0.1s linear'
   }
 })
 

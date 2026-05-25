@@ -22,6 +22,11 @@ interface GameState {
   nextExplosionId: number;
   nextSpawnAt: number;
   gameStartTime: number;
+  isDragging: boolean;
+  dragOffsetX: number;
+  dragOffsetY: number;
+  targetX: number | null;
+  targetY: number | null;
   isGameOver: boolean;
   fps: number;
   lastFrameTime: number;
@@ -66,6 +71,11 @@ export const useGameStore = defineStore("game", {
     nextExplosionId: 0,
     nextSpawnAt: 0,
     gameStartTime: 0,
+    isDragging: false,
+    dragOffsetX: 0,
+    dragOffsetY: 0,
+    targetX: null,
+    targetY: null,
     isGameOver: false,
     fps: 0,
     lastFrameTime: 0,
@@ -76,18 +86,85 @@ export const useGameStore = defineStore("game", {
 
   actions: {
     updateMovement() {
-      const { x, y } = handleMovement(this.player, this.keyboard);
-      this.player.x = x;
-      this.player.y = y;
+      if (this.isDragging) {
+        const bounded = handleBoundary(
+          this.player.x, this.player.y,
+          this.player.width, this.player.height, this.player.scale,
+        );
+        this.player.x = bounded.x;
+        this.player.y = bounded.y;
+        return;
+      }
+
+      const kb = this.keyboard;
+      const anyKey = kb.ArrowUp || kb.ArrowDown || kb.ArrowLeft || kb.ArrowRight ||
+                     kb.KeyW   || kb.KeyS        || kb.KeyA      || kb.KeyD;
+
+      if (anyKey) {
+        const { x: kbX, y: kbY } = handleMovement(this.player, this.keyboard);
+        this.player.x = kbX;
+        this.player.y = kbY;
+        this.targetX = null;
+        this.targetY = null;
+      } else if (this.targetX !== null && this.targetY !== null) {
+        const dx   = this.targetX - this.player.x;
+        const dy   = this.targetY - this.player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const spd  = this.player.speed;
+
+        if (dist <= spd) {
+          this.player.x = this.targetX;
+          this.player.y = this.targetY;
+          this.targetX  = null;
+          this.targetY  = null;
+        } else {
+          this.player.x += (dx / dist) * spd;
+          this.player.y += (dy / dist) * spd;
+          if (Math.abs(dx) > 1) {
+            this.player.direction = dx > 0 ? "right" : "left";
+          }
+        }
+      }
+
       const bounded = handleBoundary(
-        this.player.x,
-        this.player.y,
-        this.player.width,
-        this.player.height,
-        this.player.scale,
+        this.player.x, this.player.y,
+        this.player.width, this.player.height, this.player.scale,
       );
       this.player.x = bounded.x;
       this.player.y = bounded.y;
+    },
+
+    setMoveTarget(mouseX: number, mouseY: number) {
+      const size = 90 * this.player.scale;
+      const raw  = handleBoundary(
+        mouseX - size / 2, mouseY - size / 2,
+        this.player.width, this.player.height, this.player.scale,
+      );
+      this.targetX = raw.x;
+      this.targetY = raw.y;
+    },
+
+    startDrag(offsetX: number, offsetY: number) {
+      this.isDragging  = true;
+      this.dragOffsetX = offsetX;
+      this.dragOffsetY = offsetY;
+      this.targetX     = null;
+      this.targetY     = null;
+    },
+
+    stopDrag() {
+      this.isDragging = false;
+    },
+
+    setDragPosition(mouseX: number, mouseY: number) {
+      if (!this.isDragging) return;
+      const newX = mouseX - this.dragOffsetX;
+      const dx   = newX - this.player.x;
+      if (Math.abs(dx) > 2) {
+        this.player.direction = dx > 0 ? "right" : "left";
+      }
+      this.player.x = newX;
+      this.player.y = mouseY - this.dragOffsetY;
     },
 
     handleRotation() {
@@ -402,6 +479,9 @@ export const useGameStore = defineStore("game", {
       this.obstacles         = [];
       this.explosions        = [];
       this.shootCooldown     = false;
+      this.isDragging        = false;
+      this.targetX           = null;
+      this.targetY           = null;
       this.isGameOver        = false;
       this.gameStartTime     = 0; // reset to 0; re-initialised on first updateObstacles call
       // Brief grace period before first asteroid spawns

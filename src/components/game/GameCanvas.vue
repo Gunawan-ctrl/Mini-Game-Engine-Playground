@@ -4,13 +4,16 @@
     class="game-container relative"
     :style="{
       width: `${width}px`,
-      height: `${height}px`
+      height: `${height}px`,
+      cursor: gameStore.isDragging ? 'grabbing' : undefined,
+      userSelect: gameStore.isDragging ? 'none' : undefined
     }"
     tabindex="0"
     @keydown="handleKeyDown"
     @keyup="handleKeyUp"
     @wheel="handleWheel"
     @click="handleCanvasClick"
+    @mousedown="handleMouseDown"
   >
     <!-- Game Area -->
     <div class="relative w-full h-full bg-linear-to-br from-gray-900 to-gray-800 overflow-hidden">
@@ -121,7 +124,7 @@
       
       <!-- Idle Animation Indicator -->
       <div
-        v-if="!isMoving && !gameStore.isGameOver"
+        v-if="!isMoving && gameStore.targetX === null && !gameStore.isDragging && !gameStore.isGameOver"
         class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-cyan-400 text-sm animate-pulse"
       >
         ✨ Jet Fighter Ready ✨
@@ -313,9 +316,47 @@ const handleWheel = (e: WheelEvent) => {
   gameStore.handleScale(delta)
 }
 
-const handleCanvasClick = () => {
-  // Only trigger if clicking on canvas background
-  // Player click is handled separately
+let recentlyDragged = false
+
+const handleCanvasClick = (e: MouseEvent) => {
+  if (gameStore.isGameOver || recentlyDragged) return
+  const rect = canvasRef.value?.getBoundingClientRect()
+  if (!rect) return
+  gameStore.setMoveTarget(e.clientX - rect.left, e.clientY - rect.top)
+}
+
+const handleMouseDown = (e: MouseEvent) => {
+  if (gameStore.isGameOver) return
+  const rect = canvasRef.value?.getBoundingClientRect()
+  if (!rect) return
+  const mouseX = e.clientX - rect.left
+  const mouseY = e.clientY - rect.top
+  const size   = 90 * gameStore.player.scale
+  const px     = gameStore.player.x
+  const py     = gameStore.player.y
+  if (mouseX >= px && mouseX <= px + size && mouseY >= py && mouseY <= py + size) {
+    gameStore.startDrag(mouseX - px, mouseY - py)
+    e.preventDefault()
+    window.addEventListener('mousemove', handleGlobalMouseMove)
+    window.addEventListener('mouseup',   handleGlobalMouseUp)
+  }
+}
+
+const handleGlobalMouseMove = (e: MouseEvent) => {
+  if (!gameStore.isDragging) return
+  const rect = canvasRef.value?.getBoundingClientRect()
+  if (!rect) return
+  gameStore.setDragPosition(e.clientX - rect.left, e.clientY - rect.top)
+}
+
+const handleGlobalMouseUp = () => {
+  if (gameStore.isDragging) {
+    recentlyDragged = true
+    setTimeout(() => { recentlyDragged = false }, 100)
+  }
+  gameStore.stopDrag()
+  window.removeEventListener('mousemove', handleGlobalMouseMove)
+  window.removeEventListener('mouseup',   handleGlobalMouseUp)
 }
 
 const gameLoop = (currentTime: number) => {
