@@ -28,6 +28,9 @@
                 
                 <div class="text-gray-400">Rotate Right:</div>
                 <div class="text-white">E</div>
+
+                <div class="text-gray-400">Shoot:</div>
+                <div class="text-white">Space</div>
                 
                 <div class="text-gray-400">Scale:</div>
                 <div class="text-white">Mouse Wheel</div>

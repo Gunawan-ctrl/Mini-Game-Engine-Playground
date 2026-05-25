@@ -43,3 +43,28 @@ export interface Bullet {
   speed: number;
   size: number;
 }
+
+export interface Obstacle {
+  id: number;
+  x: number;
+  y: number;
+  size: number;
+  speed: number;
+  type: "small" | "medium" | "large";
+}
+
+export interface ExplosionParticle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  alpha: number;
+  decay: number;
+}
+
+export interface Explosion {
+  id: number;
+  particles: ExplosionParticle[];
+}
