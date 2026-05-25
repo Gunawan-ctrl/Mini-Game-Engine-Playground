@@ -6,7 +6,7 @@
         <h1 class="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
           Interactive Object Playground
         </h1>
-        <p class="text-gray-400 mt-2">WASD / Arrow Keys • Q/E Rotate • Scroll Scale • Click Me!</p>
+        <p class="text-gray-400 mt-2">WASD / Arrow Keys • Q/E Rotate • Space Shoot • Scroll Scale • Click Me!</p>
       </div>
       
       <!-- Main Game Area -->
